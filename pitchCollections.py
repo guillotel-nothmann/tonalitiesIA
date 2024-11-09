@@ -22,7 +22,9 @@ from music21.languageExcerpts.instrumentLookup import transposition
 from email.charset import SHORTEST
 from music21.figuredBass import notation 
 from itertools import combinations
-from music21.note import Note
+from music21.note import Note, Rest
+import math
+from builtins import isinstance
  
 
     
@@ -50,7 +52,7 @@ class PitchCollectionSequence (object):
             
             self.stream = work
             self.semiFlatStream = self.stream.semiFlat
-            self.scoreTree = tree.fromStream.asTimespans(self.stream, flatten=True, classList=(note.Note, chord.Chord))
+            self.scoreTree = tree.fromStream.asTimespans(self.stream, flatten=True, classList=(note.Note, chord.Chord, Rest))
             self.measureOffsetList = self.getMeasureOffsets()
             
             
@@ -369,15 +371,18 @@ class PitchCollectionSequence (object):
              
             if round (element.endTime, 6) == round (verticality.offset, 6):continue
             elementList.append(element)
-         
+        
+        
+        
         ''' 2. loop over these elements  '''
         for element in elementList:
             ''' 2.1. extract part '''
+          
             elementPart = element.getParentageByClass(classList=(stream.Part,))
-             
+         
             ''' 2.2. extract voice '''
             elementVoice = element.getParentageByClass(classList=(stream.Voice,))
-             
+         
             ''' 2.3a if element is note '''
             if isinstance(element.element, note.Note):
                 ''' get id for this specific note '''
@@ -408,6 +413,15 @@ class PitchCollectionSequence (object):
                     analyzedPitch.voice = elementVoice
                     analyzedPitch.attack = True if element in verticality.startTimespans else False
                     analyzedPitchList.append(analyzedPitch) 
+                    
+            if isinstance(element.element, Rest):
+                    analyzedPitch = Pitch(None, verticalities)
+                    analyzedPitch.id = element.element.id
+                    analyzedPitch.part = elementPart
+                    analyzedPitch.voice = elementVoice
+                    analyzedPitch.attack = True if element in verticality.startTimespans else False
+                    analyzedPitchList.append(analyzedPitch)
+            
         return PitchCollection(verticality, analyzedPitchList)
     
 
@@ -1023,10 +1037,7 @@ class PitchCollectionSequence (object):
         
         return pitchList   
     
-    def setPitchObservations(self, dataPath, labelDictionary):
-        
-        ###  dic for dissonances   thisdict = {"CN": 0, "PN": 1, "NN": 2, "AN": 3, "SU": 4, "AP": 5, "PE": 6, "EN":7}
-        
+    def setPitchObservations(self, dataPath, labelDictionary): 
         import numpy as np
         import os
         
@@ -1045,11 +1056,11 @@ class PitchCollectionSequence (object):
             for analyzedPitch in pitchCollection.analyzedPitchList:
                 
                 ''' get observation list '''
-                observationList = self.getObservationsForPitchIdChromatic(analyzedPitch.id, 5, pitchCollection.verticality.offset)
+                observationList = self.getObservationsForElementId(analyzedPitch.id, 5, pitchCollection.verticality.offset)
                 # fileObservations.write(observationString)
         
                 ''' store label in file_2'''
-                labelString = analyzedPitch.pitchType  # + '\t' + analyzedPitch.pitchSubType
+                labelString = analyzedPitch.concept  # + '\t' + analyzedPitch.pitchSubType
                 if labelString not in labelDictionary:
                     print ("Wrong label...skip: " + str(labelString))
                     continue
@@ -1069,7 +1080,7 @@ class PitchCollectionSequence (object):
                 np.save( dataPath + '/labels/' + str(fileIndex).zfill(7), np.array(labelDictionary[labelString]), True, False)
                 np.save(dataPath + '/ids/' + str(fileIndex).zfill(7), np.array(idString), True, False)
                 
-                print ("Observation %s set" % (fileIndex))
+               # print ("Observation %s set" % (fileIndex))
                 
                 # fileObservations.close()
                 # fileLabel.close()
@@ -1352,6 +1363,9 @@ class PitchCollectionSequence (object):
             
             ''' loop over every analyzed pitch '''
             for analyzedPitch in pitchCollection.analyzedPitchList:
+                if analyzedPitch.pitch == None:
+                    continue 
+                
                 
                 ''' transpose pitch '''
                 transpositionInterval.noteStart = note.Note(analyzedPitch.pitch.nameWithOctave)
@@ -1362,7 +1376,7 @@ class PitchCollectionSequence (object):
                 
                
                 
-                # print ("Observed pitch (0): %s, transposition interval: %s, current pitch: %s, transposition: %s, diatonic step: %s, alteration: %s " %(observedPitch[0].pitch, transpositionInterval, analyzedPitch.pitch.nameWithOctave, transposedPitch.nameWithOctave, diatonicStep, transposedPitch.alter))
+                #print ("Observed pitch (0): %s, transposition interval: %s, current pitch: %s, transposition: %s, diatonic step: %s, alteration: %s " %(observedPitch[0].pitch, transpositionInterval, analyzedPitch.pitch.nameWithOctave, transposedPitch.nameWithOctave, diatonicStep, transposedPitch.alter))
                 
                 ''' fill list with dimension at corresponding position '''
                     
@@ -1378,7 +1392,7 @@ class PitchCollectionSequence (object):
                 contextList[index][chromaticStep][2] = pitchCollection.duration
                 
                 ''' 4. beat strength '''
-                contextList[index][chromaticStep][3] = pitchCollection.beatStrength 
+                contextList[index][chromaticStep][3] =  pitchCollection.beatStrength 
                 
                 ''' 5. attack '''
                 contextList[index][chromaticStep][4] = 1 if analyzedPitch.attack == True else 0
@@ -1397,7 +1411,132 @@ class PitchCollectionSequence (object):
                 
             
             
-        return contextList         
+        return contextList   
+    
+    
+    def getObservationsForElementId(self, analyzedPitchId, context=5, offset=0):
+        ''' get transposition interval '''
+        observedPitch = self.getAnalyzedPitchCorrespondingToId(analyzedPitchId, offset)[0]
+        
+        
+      
+        ''' create dics '''    
+        note2NumDic =  {"C-":0, "C":1, "C#":2, "C##":2, "D-":3, "D":4, "D#":5, "E--":6,  "E-":6, "E":7, "E#":8, "F-":9, "F":10, "F#":11, "F##":11, "G-":12, "G":13, "G#":14, "A-":15, "A":16, "A#":17, "B--": 18,  "B-":18, "B":19, "B#":20, None: 21}
+        
+        
+        partVoice2NumDic = {}
+        #by default, the observed elmnt's part is 0, other parts are numbered from bottom to top, 
+        #if more than 4 voices, put the rest on voice 5.  
+        #if silence, use last free position before 5
+        referencePitchColl = self.getAnalyzedPitchCollectionAtOffset(offset)
+        pitchList = []
+        silenceSubList = []
+        
+        for analyedPitch in referencePitchColl.analyzedPitchList:
+            if analyedPitch.pitch != None:
+                pitchList.append(analyedPitch)
+            else:
+                silenceSubList.append(analyedPitch)
+                
+        
+        pitchList = sorted(pitchList, key=lambda x: (x.pitch.ps, x.part.partName))
+        pitchList = pitchList + silenceSubList
+        partVoice2NumDic [observedPitch.part.id + "_" + observedPitch.voice.id] = 0
+        
+        partVoiceIndex = 1
+        
+        for pitch in pitchList:
+            if pitch == observedPitch: continue
+            if partVoiceIndex <= 3:
+                partVoice2NumDic [pitch.part.id + "_" + pitch.voice.id] = partVoiceIndex
+            else:
+                partVoice2NumDic [pitch.part.id + "_" + pitch.voice.id] = 4
+            partVoiceIndex = partVoiceIndex + 1 
+        partVoice2NumDic ["other"] = 4
+            
+      
+        
+        ''' build list of lists and fill everything with 0'''
+        observationList = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 17 criteria
+        pitchList = []
+        partList = []
+        contextList = []    
+        
+        for unused_counter in range (0, 22):
+            pitchList.append(deepcopy(observationList))    
+            
+        for unused_counter in range (0, 5):
+            partList.append(deepcopy(pitchList))   
+        
+        for unused_counter in range (0, context * 2 + 1): # context
+            contextList.append(deepcopy(partList))  
+            
+        
+        
+        
+        
+        
+         
+        # print ('Reference pitch: ' + observedPitch[0].pitch.step + ", diatonic number: " + str(pitchDiatonicNumber) + ", diatonic vector: " + str (diatonicVector))
+        
+        ''' create pitchCollList i.e. context before and after reference offset'''
+        pitchCollectionList = self.getPitchCollectionContext(offset, context)
+        
+        ''' loop over pitch colls '''
+        for index in range (0, len(pitchCollectionList)):
+            pitchCollection = pitchCollectionList[index]
+            
+            if pitchCollection == None: continue  # in that case all values remain zero
+            if len(pitchCollection.analyzedPitchList) == 0: continue 
+             
+            
+            deepestPitchClass = pitchCollection.getBassPitch()
+            
+            if deepestPitchClass != None: deepestPitchClass = deepestPitchClass.name  # get deepest pitch class
+            
+            ''' loop over every analyzed pitch '''
+            for analyzedPitch in pitchCollection.analyzedPitchList:
+                if analyzedPitch.pitch == None:
+                    continue 
+                
+
+                
+                chromaticStep =note2NumDic[analyzedPitch.pitch.name]
+                partVoiceIndex = partVoice2NumDic[analyzedPitch.part.id + "_" + analyzedPitch.voice.id]
+                
+               
+                
+                #print ("Observed pitch (0): %s, transposition interval: %s, current pitch: %s, transposition: %s, diatonic step: %s, alteration: %s " %(observedPitch[0].pitch, transpositionInterval, analyzedPitch.pitch.nameWithOctave, transposedPitch.nameWithOctave, diatonicStep, transposedPitch.alter))
+                
+                ''' fill list with dimension at corresponding position '''
+                    
+                ''' 1.  chromatic steps '''
+                contextList[index][partVoiceIndex][chromaticStep][0] = 1 
+                
+                ''' 2. deepest pitch  '''   
+                if analyzedPitch.pitch != None and deepestPitchClass != None:
+                    contextList[index][partVoiceIndex][chromaticStep][1] = 1 if deepestPitchClass == analyzedPitch.pitch.name else 0          
+
+                ''' 3. duration '''
+                contextList[index][partVoiceIndex][chromaticStep][2] = pitchCollection.duration
+                
+                ''' 4. beat strength '''
+                contextList[index][partVoiceIndex][chromaticStep][3] =  pitchCollection.beatStrength 
+                
+                ''' 5. attack '''
+                contextList[index][partVoiceIndex][chromaticStep][4] = 1 if analyzedPitch.attack == True else 0
+                
+                ''' 6. occurrence '''
+                contextList[index][partVoiceIndex][chromaticStep][5] = contextList[index][partVoiceIndex][chromaticStep][5] + 1 
+                    
+                '''7-17 octave location (octaves 0 to 10) '''
+                if analyzedPitch.pitch != None:
+                    contextList[index][partVoiceIndex][chromaticStep][6 + analyzedPitch.pitch.octave] = contextList[index][partVoiceIndex][chromaticStep][6 + analyzedPitch.pitch.octave] + 1
+                
+                 
+            
+            
+        return contextList               
     
     
     def getObservationsForPitchId(self, analyzedPitchId, context=5, offset=0):
@@ -1781,7 +1920,7 @@ class PitchCollectionSequence (object):
     def _getMelMovementsList (self, scoreStream):
         ''' returns melodic movements of trigram '''
         if scoreStream == None:
-            print ('')
+            pass
         
         movementList = []   
         ''' loop through scoreStream '''
@@ -2051,7 +2190,11 @@ class PitchCollection():
             self.chord = verticality.toChord() 
             self.offset = verticality.offset 
             self.bass = self.chord.bass()
-            self.beatStrength = verticality.beatStrength
+            if math.isnan (verticality.beatStrength):
+                print ("Beat strength not identified. Will use 0 value.")
+                self.beatStrength = 0
+            else:
+                self.beatStrength = verticality.beatStrength
             self.measureNumber = verticality.measureNumber
              
              
@@ -2059,10 +2202,10 @@ class PitchCollection():
             
             
             
-             
+            if self.bass != None:
             
-            bassNote = note.Note (self.bass.name)
-            bassNote.octave = 0
+                bassNote = note.Note (self.bass.name)
+                bassNote.octave = 0
             
             for vertPitch in verticality.pitchSet:
                 vertNote = note.Note(vertPitch.name)

@@ -18,17 +18,17 @@ import matplotlib.pyplot as plt
 
 
 
-print ("test")
-
-
 ''' import dataset '''
 
 features= np.load('data/observations.npy')
 labels = np.load('data/labels.npy')
 ids = np.load('data/ids.npy')
 
+labelList = [] 
 
-trainTestLimit = 460
+
+
+trainTestLimit = 15000
 
 train_features = features [trainTestLimit:]
 train_labels = labels [trainTestLimit:]
@@ -44,9 +44,9 @@ testData = (test_features, test_labels)
 model = keras.Sequential()
 
 
-model.add(keras.layers.Flatten(input_shape=(11, 21, 18))) # (context, chromatic and enharmonic pitches, other params)
-model.add(keras.layers.Dense(45))
-model.add(keras.layers.Dense(25, activation=tf.nn.softmax)) # label values       
+model.add(keras.layers.Flatten(input_shape=(11, 5, 22, 17))) # (context, chromatic and enharmonic pitches, other params)
+model.add(keras.layers.Dense(10)) 
+model.add(keras.layers.Dense(3, activation=tf.nn.softmax)) # label values       
         
 
 
@@ -55,7 +55,7 @@ model.compile(optimizer="adam",  loss='sparse_categorical_crossentropy',metrics=
 
 #''' callbacks '''
 cb = keras.callbacks.TensorBoard(log_dir='/Users/Christophe/Desktop/dataset/logs', 
-                                 histogram_freq=0, batch_size=1000, write_graph=True, 
+                                 histogram_freq=0, batch_size=200, write_graph=True, 
                                  write_grads=False, write_images=False, embeddings_freq=0, 
                                  embeddings_layer_names=None, 
                                  embeddings_metadata=None, embeddings_data=None)
@@ -64,7 +64,7 @@ cb = keras.callbacks.TensorBoard(log_dir='/Users/Christophe/Desktop/dataset/logs
 ''' train model '''
 #history = model.fit(train_features, train_labels, epochs=12)
 
-history = model.fit(train_features, train_labels, epochs=200, batch_size=3000, validation_data=testData, callbacks=[cb])
+history = model.fit(train_features, train_labels, epochs=100, batch_size=2000, validation_data=testData, callbacks=[cb])
 history_dict = history.history
 
 
@@ -76,7 +76,7 @@ print('Test accuracy:', test_acc)
 
 ''' save model '''
 
-model.save('/Users/Christophe/Desktop/dataset/cadenceModel.h5')
+model.save('model/cadenceModel.h5')
 
 
 #===============================================================================
@@ -129,7 +129,7 @@ predictions = model.predict(features)
 # 
 #  
 print ("prediction: " + str(predictions[0]) + "truth: " + str(labels[0]))
-print ("prediction: " + str(predictions[1]) + "truth: " + str(labels[1]))
+print ("prediction: " + str(predictions[16]) + "truth: " + str(labels[16]))
 # 
 # 
 # predictions = new_model.predict(features)

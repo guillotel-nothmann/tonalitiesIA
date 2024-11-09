@@ -6,7 +6,7 @@ Created on Sep 14, 2024
 
 
 from SPARQLWrapper import SPARQLWrapper, JSON 
-from documentation.source.conf import project
+#from documentation.source.conf import project
 
 
 class Queries (object):
@@ -23,7 +23,7 @@ class Queries (object):
             
         conceptString = ""
         for element in conceptList:
-            conceptString = conceptString + element + ", " 
+            conceptString = conceptString + "<" + element + ">, " 
         conceptString = conceptString[:-2]
             
         try:
