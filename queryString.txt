@@ -10,7 +10,7 @@ WHERE {
   ?E13 sherlock:has_document_context ?docContext.
   ?E13 crm:P177_assigned_property_of_type crm:P2_has_type. 
   ?E13 crm:P141_assigned ?concept.
-  FILTER (?concept IN (<https://w3id.org/polifonia/ontology/modal-tonal/Cadences_FilaberGuillotelGurrieri_2023/Simplex>))
+  FILTER (?concept IN ([conceptList]))
   ?E13 crm:P140_assigned_attribute_to ?E28.
   ?E13_P67 crm:P141_assigned ?E28.
   ?E13_P67 crm:P140_assigned_attribute_to ?noteUri.

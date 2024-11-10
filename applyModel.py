@@ -28,7 +28,7 @@ observationDictionary = {0:None,
 
 ### read and create pitchcoll sequence 
 
-work = converter.parse("/Users/christophe/Downloads/Bin3032.mei")    #parseURL(workURI, forceSource = True)
+work = converter.parse("/Users/christophe/Documents/GitHub/tonalities-pilot/scores/Dufay/029.mei")    #parseURL(workURI, forceSource = True)
 pitchCollSequence = PitchCollectionSequence(work)
 
 xmlIdList = []
@@ -38,7 +38,7 @@ for pitchCollection in pitchCollSequence.explainedPitchCollectionList:
     for analysedPitch in pitchCollection.analyzedPitchList:
         
     
-        observationArray = np.array(pitchCollSequence.getObservationsForElementID(analysedPitch.id, 5, pitchCollection.offset))
+        observationArray = np.array(pitchCollSequence.getObservationsForElementId(analysedPitch.id, 5, pitchCollection.offset))
         feature = np.array([observationArray])
                     
         ''' make prediction from observation list '''

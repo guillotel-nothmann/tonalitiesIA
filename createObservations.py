@@ -3,10 +3,13 @@ from music21 import converter, key
 from pitchCollections import PitchCollectionSequence
 from queries import Queries
 from manipulateDataset import ManipulateDataSet
+import os
+import shutil
 
 
 class Observations(object):
     ''' this class is used to produce observations for training the neural network '''
+
     
     def __init__(self, projectList, conceptList):
         self.projectList = projectList
@@ -183,8 +186,21 @@ projectList = [
 '5e3683ef-7a0d-4e73-bd9b-4b747a12dee5', 
                ]
 conceptList = ["https://w3id.org/polifonia/ontology/modal-tonal/Cadences_FilaberGuillotelGurrieri_2023/Simplex",
-               "https://w3id.org/polifonia/ontology/modal-tonal/Cadences_FilaberGuillotelGurrieri_2023/Formalis"
+               "https://w3id.org/polifonia/ontology/modal-tonal/Cadences_FilaberGuillotelGurrieri_2023/Formalis",
                               ]
+
+''' delete data'''
+print ("Deleting files...")
+for folder in ["data/labels", "data/ids", "data/observations"]:
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 for project in projectList :
     print ("Processing project: " + project)

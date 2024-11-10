@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 
 
 
+
+
 ''' import dataset '''
 
 features= np.load('data/observations.npy')
@@ -27,8 +29,7 @@ ids = np.load('data/ids.npy')
 labelList = [] 
 
 
-
-trainTestLimit = 15000
+trainTestLimit = 3000
 
 train_features = features [trainTestLimit:]
 train_labels = labels [trainTestLimit:]
@@ -64,7 +65,7 @@ cb = keras.callbacks.TensorBoard(log_dir='/Users/Christophe/Desktop/dataset/logs
 ''' train model '''
 #history = model.fit(train_features, train_labels, epochs=12)
 
-history = model.fit(train_features, train_labels, epochs=100, batch_size=2000, validation_data=testData, callbacks=[cb])
+history = model.fit(train_features, train_labels, epochs=200, batch_size=3000, validation_data=testData, callbacks=[cb])
 history_dict = history.history
 
 

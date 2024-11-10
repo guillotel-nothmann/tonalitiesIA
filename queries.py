@@ -31,6 +31,8 @@ class Queries (object):
             with open("queryString.txt", 'r', encoding="utf-8") as file: self.queryString = file.read()
             self.queryString = self.queryString.replace("[projectList]", projectString)
             self.queryString = self.queryString.replace("[conceptList]", conceptString)
+            
+           # print (self.queryString)
                        
             
         except Exception as unused_e: 
